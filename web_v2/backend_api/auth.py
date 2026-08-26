@@ -1,6 +1,12 @@
 import bcrypt
+import jwt
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
 
-# Legacy plain text password for reference: "MikopoHubAdmin2026"
+JWT_SECRET = "mikopohub-jwt-secret-key-2026-secure"
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_DAYS = 7
+
 LEGACY_PLAIN_PASSWORD = "MikopoHubAdmin2026"
 
 
@@ -21,5 +27,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
-# Pre-computed bcrypt hash for admin credential validation
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """Generates a signed JWT access token for authenticated users."""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
+
+
+def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
+    """Decodes and validates a JWT access token."""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except Exception:
+        return None
+
+
 ADMIN_PASSWORD_HASH = hash_password(LEGACY_PLAIN_PASSWORD)

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Dashboard from '@/components/Dashboard';
 import BorrowersManager from '@/components/BorrowersManager';
@@ -10,6 +10,9 @@ import RecordPayment from '@/components/RecordPayment';
 import PaymentsLedger from '@/components/PaymentsLedger';
 import FormFeesManager from '@/components/FormFeesManager';
 import CollateralManager from '@/components/CollateralManager';
+import ClientPortal from '@/components/ClientPortal';
+import AuditLogMonitor from '@/components/AuditLogMonitor';
+import AuthModal from '@/components/AuthModal';
 
 import { 
   LayoutDashboard, 
@@ -22,19 +25,64 @@ import {
   Shield, 
   Menu,
   X,
-  PlusCircle,
   FilePlus2,
-  Receipt
+  Receipt,
+  UserCheck,
+  LogIn,
+  LogOut,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'borrowers' | 'loans' | 'pushforward' | 'payment' | 'ledger' | 'formfees' | 'collateral'
+    'dashboard' | 'borrowers' | 'loans' | 'pushforward' | 'payment' | 'ledger' | 'formfees' | 'collateral' | 'client_portal' | 'audit_logs'
   >('dashboard');
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('mikopohub_user');
+    const savedToken = localStorage.getItem('mikopohub_token');
+    if (savedUser && savedToken) {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setToken(savedToken);
+      if (parsedUser.role === 'CLIENT') {
+        setActiveTab('client_portal');
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('mikopohub_user');
+    localStorage.removeItem('mikopohub_token');
+    setUser(null);
+    setToken(null);
+    setActiveTab('dashboard');
+  };
+
+  const handleAuthSuccess = (userData: any, userToken: string) => {
+    setUser(userData);
+    setToken(userToken);
+    if (userData.role === 'CLIENT') {
+      setActiveTab('client_portal');
+    } else {
+      setActiveTab('dashboard');
+    }
+  };
 
   const navCategories = [
+    ...(user && user.role === 'CLIENT' ? [
+      {
+        title: "CLIENT BORROWER PORTAL",
+        items: [
+          { id: 'client_portal', label: 'My Borrower Dashboard', icon: UserCheck, color: 'text-emerald-400', highlight: true },
+        ]
+      }
+    ] : []),
     {
       title: "PORTFOLIO & CORE",
       items: [
@@ -56,6 +104,7 @@ export default function Home() {
       items: [
         { id: 'formfees', label: 'Form Fees', icon: FileText, color: 'text-cyan-400' },
         { id: 'collateral', label: 'Collateral', icon: Shield, color: 'text-purple-400' },
+        { id: 'audit_logs', label: 'Security & Audit Logs', icon: ShieldAlert, color: 'text-red-400' },
       ]
     }
   ];
@@ -70,6 +119,8 @@ export default function Home() {
       case 'ledger': return 'General Payments Ledger';
       case 'formfees': return 'Form Fees & Registration';
       case 'collateral': return 'Collateral Physical Registry';
+      case 'client_portal': return 'Borrower Client Portal';
+      case 'audit_logs': return 'Security & Audit Logs Monitor';
       default: return 'MikopoHub';
     }
   };
@@ -79,6 +130,13 @@ export default function Home() {
       {/* Background Radial Glow Effects */}
       <div className="infinity-glow-bg w-[500px] h-[500px] bg-emerald-500/5 top-[-100px] left-[-100px]" />
       <div className="infinity-glow-bg w-[400px] h-[400px] bg-sky-500/5 bottom-[-100px] right-[-100px]" />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+      />
 
       {/* MOBILE SIDEBAR OVERLAY BACKDROP */}
       {sidebarOpen && (
@@ -115,6 +173,38 @@ export default function Home() {
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* User Status Box */}
+        <div className="p-4 border-b border-slate-800/60 bg-[#090b10]/60 flex items-center justify-between">
+          {user ? (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold text-xs">
+                  {user.username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white leading-none">{user.username}</div>
+                  <div className="text-[10px] text-emerald-400 font-mono mt-0.5 uppercase">{user.role}</div>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Log Out"
+                className="text-slate-400 hover:text-red-400 p-1 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAuthModalOpen(true)}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow"
+            >
+              <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Login / Sign Up</span>
+            </button>
+          )}
         </div>
 
         {/* Sidebar Navigation Links */}
@@ -171,30 +261,41 @@ export default function Home() {
           </div>
 
           {/* TOP HEADER QUICK TABS: REQUEST LOAN & M-PESA PAYMENT */}
-          <div className="flex items-center gap-2 bg-[#161922] border border-[#2a2f3d] p-1 rounded-xl">
-            <button 
-              onClick={() => setActiveTab('loans')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'loans' 
-                  ? 'bg-emerald-600 text-white shadow-md' 
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <FilePlus2 className="w-3.5 h-3.5" />
-              <span>Request Loan</span>
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-[#161922] border border-[#2a2f3d] p-1 rounded-xl">
+              <button 
+                onClick={() => setActiveTab('loans')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'loans' 
+                    ? 'bg-emerald-600 text-white shadow-md' 
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <FilePlus2 className="w-3.5 h-3.5" />
+                <span>Request Loan</span>
+              </button>
 
-            <button 
-              onClick={() => setActiveTab('payment')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'payment' 
-                  ? 'bg-emerald-600 text-white shadow-md' 
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Receipt className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Record Payment</span>
-            </button>
+              <button 
+                onClick={() => setActiveTab('payment')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'payment' 
+                    ? 'bg-emerald-600 text-white shadow-md' 
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Record Payment</span>
+              </button>
+            </div>
+
+            {!user && (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </header>
 
@@ -208,6 +309,8 @@ export default function Home() {
           {activeTab === 'ledger' && <PaymentsLedger />}
           {activeTab === 'formfees' && <FormFeesManager />}
           {activeTab === 'collateral' && <CollateralManager />}
+          {activeTab === 'client_portal' && <ClientPortal user={user || { borrower_id: 1, username: 'Guest' }} />}
+          {activeTab === 'audit_logs' && <AuditLogMonitor />}
         </main>
       </div>
     </div>

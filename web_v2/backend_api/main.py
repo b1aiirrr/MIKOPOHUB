@@ -4,15 +4,21 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Optional, List
 
-from auth import ADMIN_PASSWORD_HASH, verify_password
-from fastapi import FastAPI, HTTPException, Query, status
+from auth import (
+    ADMIN_PASSWORD_HASH,
+    verify_password,
+    hash_password,
+    create_access_token,
+    decode_access_token
+)
+from fastapi import FastAPI, HTTPException, Query, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI(
     title="MIKOPOHUB Web API",
-    version="2.0.0",
-    description="Complete Micro-Lending API covering Borrowers, Loans, Push-Forward, Payments, Form Fees, Collateral, and Reporting",
+    version="2.1.0",
+    description="Complete Micro-Lending API covering Borrowers, Loans, Push-Forward, Payments, Form Fees, Collateral, Auth & Audit Logs",
 )
 
 # CORS Configuration
@@ -45,6 +51,55 @@ def get_db_connection() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
+
+
+@app.on_event("startup")
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'CLIENT',
+            borrower_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            username TEXT NOT NULL,
+            action TEXT NOT NULL,
+            entity TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+    """)
+    # Check default admin
+    cursor.execute("SELECT id FROM users WHERE username = ?", ("admin",))
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+            ("admin", hash_password("admin123"), "ADMIN", datetime.utcnow().isoformat())
+        )
+    conn.commit()
+    conn.close()
+
+
+def log_audit(user_id: Optional[int], username: str, action: str, entity: str):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO audit_logs (user_id, username, action, entity, timestamp) VALUES (?, ?, ?, ?, ?)",
+            (user_id, username, action, entity, datetime.utcnow().isoformat())
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 
 def money(val) -> Decimal:
@@ -108,22 +163,195 @@ class CollateralUpdateRequest(BaseModel):
     notes: Optional[str] = ""
 
 
-# --- API Routes ---
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    full_name: str
+    phone: str
+    national_id: Optional[str] = ""
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class ClientLoanApplyRequest(BaseModel):
+    principal: float
+    purpose: Optional[str] = ""
+
+
+# --- AUTH & AUDIT ENDPOINTS ---
+
+@app.post("/api/auth/register")
+def register_user(req: RegisterRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Check if username exists
+        cursor.execute("SELECT id FROM users WHERE username = ?", (req.username.strip(),))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Username already exists")
+
+        # Auto-create or link matching borrower record
+        cursor.execute("SELECT id FROM borrowers WHERE phone = ? OR national_id = ?", (req.phone.strip(), req.national_id.strip()))
+        existing_b = cursor.fetchone()
+        
+        if existing_b:
+            borrower_id = existing_b["id"]
+        else:
+            b_num = generate_number("BRW", "borrowers")
+            cursor.execute(
+                "INSERT INTO borrowers (borrower_number, full_name, phone, national_id) VALUES (?, ?, ?, ?)",
+                (b_num, req.full_name, req.phone, req.national_id)
+            )
+            borrower_id = cursor.lastrowid
+
+        pwd_hash = hash_password(req.password)
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role, borrower_id, created_at) VALUES (?, ?, 'CLIENT', ?, ?)",
+            (req.username.strip(), pwd_hash, borrower_id, datetime.utcnow().isoformat())
+        )
+        user_id = cursor.lastrowid
+        conn.commit()
+
+        token = create_access_token({"sub": str(user_id), "username": req.username, "role": "CLIENT", "borrower_id": borrower_id})
+        log_audit(user_id, req.username, "REGISTER", f"Created client account linked to Borrower #{borrower_id}")
+
+        return {
+            "status": "success",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "username": req.username,
+                "role": "CLIENT",
+                "borrower_id": borrower_id
+            }
+        }
+    finally:
+        conn.close()
+
+
+@app.post("/api/auth/login")
+def login_user(req: LoginRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM users WHERE username = ?", (req.username.strip(),))
+        user = cursor.fetchone()
+
+        if not user or not verify_password(req.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+
+        token = create_access_token({
+            "sub": str(user["id"]),
+            "username": user["username"],
+            "role": user["role"],
+            "borrower_id": user["borrower_id"]
+        })
+
+        log_audit(user["id"], user["username"], "LOGIN", f"User logged in as {user['role']}")
+
+        return {
+            "status": "success",
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "username": user["username"],
+                "role": user["role"],
+                "borrower_id": user["borrower_id"]
+            }
+        }
+    finally:
+        conn.close()
+
+
+@app.get("/api/auth/me")
+def get_current_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return {"authenticated": False}
+
+    token = authorization.split(" ")[1]
+    payload = decode_access_token(token)
+    if not payload:
+        return {"authenticated": False}
+
+    return {
+        "authenticated": True,
+        "user": {
+            "id": payload.get("sub"),
+            "username": payload.get("username"),
+            "role": payload.get("role"),
+            "borrower_id": payload.get("borrower_id")
+        }
+    }
+
+
+@app.get("/api/admin/audit-logs")
+def get_audit_logs():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100")
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+# --- BORROWER CLIENT PORTAL ENDPOINTS ---
+
+@app.get("/api/client/my-loans")
+def get_client_loans(borrower_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT l.*, b.full_name AS borrower_name 
+            FROM loans l
+            JOIN borrowers b ON l.borrower_id = b.id
+            WHERE l.borrower_id = ?
+            ORDER BY l.id DESC
+        """, (borrower_id,))
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+@app.get("/api/client/my-payments")
+def get_client_payments(borrower_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT p.*, l.loan_number
+            FROM payments p
+            JOIN loans l ON p.loan_id = l.id
+            WHERE l.borrower_id = ?
+            ORDER BY p.id DESC
+        """, (borrower_id,))
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+# --- DASHBOARD & CORE ENDPOINTS ---
 
 @app.get("/")
 def read_root():
     return {
         "status": "online",
-        "service": "MIKOPOHUB Full Web API",
-        "version": "2.0.0",
+        "service": "MIKOPOHUB Web API",
+        "version": "2.1.0",
         "features": [
             "Borrowers", "Loans", "Push-Forward", "Payments", 
-            "Form Fees", "Collateral Registry", "Reporting"
+            "Form Fees", "Collateral Registry", "Auth", "Audit Logs"
         ]
     }
 
 
-# 1. DASHBOARD METRICS
 @app.get("/api/dashboard")
 def get_dashboard_summary():
     conn = get_db_connection()
@@ -160,7 +388,7 @@ def get_dashboard_summary():
         conn.close()
 
 
-# 2. BORROWERS MANAGEMENT
+# BORROWERS MANAGEMENT
 @app.get("/api/borrowers")
 def list_borrowers(search: Optional[str] = Query(None)):
     conn = get_db_connection()
@@ -202,6 +430,7 @@ def create_borrower(borrower: BorrowerCreateRequest):
         )
         borrower_id = cursor.lastrowid
         conn.commit()
+        log_audit(None, "SYSTEM/ADMIN", "CREATE_BORROWER", f"Registered Borrower #{borrower_number}")
         return {
             "status": "success",
             "message": "Borrower registered successfully",
@@ -212,7 +441,7 @@ def create_borrower(borrower: BorrowerCreateRequest):
         conn.close()
 
 
-# 3. LOANS ENGINE
+# LOANS ENGINE
 @app.get("/api/loans")
 def list_loans(search: Optional[str] = Query(None), status_filter: Optional[str] = Query(None)):
     conn = get_db_connection()
@@ -267,7 +496,6 @@ def create_loan(loan: LoanCreateRequest):
         )
         loan_id = cursor.lastrowid
 
-        # Initial monthly period
         cursor.execute(
             """
             INSERT INTO monthly_periods (loan_id, month_start, month_end, opening_principal, interest_due)
@@ -277,6 +505,7 @@ def create_loan(loan: LoanCreateRequest):
         )
 
         conn.commit()
+        log_audit(None, "ADMIN", "ISSUE_LOAN", f"Issued Loan #{loan_number} of KES {principal_dec}")
         return {
             "status": "success",
             "message": "Loan facility issued successfully",
@@ -289,7 +518,7 @@ def create_loan(loan: LoanCreateRequest):
         conn.close()
 
 
-# 4. PUSH FORWARD ENGINE
+# PUSH FORWARD ENGINE
 @app.post("/api/loans/{loan_id}/push-forward")
 def push_loan_forward(loan_id: int):
     conn = get_db_connection()
@@ -308,7 +537,6 @@ def push_loan_forward(loan_id: int):
         if not period:
             raise HTTPException(status_code=400, detail="No active monthly period found.")
 
-        # Check if monthly interest is fully paid
         interest_due = Decimal(str(period["interest_due"]))
         interest_paid = Decimal(str(period["interest_paid"]))
 
@@ -323,7 +551,6 @@ def push_loan_forward(loan_id: int):
         if remaining_principal <= 0:
             raise HTTPException(status_code=400, detail="Loan principal is fully paid.")
 
-        # Mark current period as carried forward
         cursor.execute("UPDATE monthly_periods SET status = 'CARRIED_FORWARD' WHERE id = ?", (period["id"],))
 
         current_end = date.fromisoformat(period["month_end"])
@@ -331,7 +558,6 @@ def push_loan_forward(loan_id: int):
         next_end = next_start + timedelta(days=30)
         next_interest = money(remaining_principal * Decimal("0.20"))
 
-        # Create next monthly period
         cursor.execute(
             """
             INSERT INTO monthly_periods (loan_id, month_start, month_end, opening_principal, interest_due, status)
@@ -341,7 +567,6 @@ def push_loan_forward(loan_id: int):
         )
         next_period_id = cursor.lastrowid
 
-        # Log push forward history
         cursor.execute(
             """
             INSERT INTO push_forward_history (loan_id, from_period_id, to_period_id, principal_carried, push_date)
@@ -351,6 +576,7 @@ def push_loan_forward(loan_id: int):
         )
 
         conn.commit()
+        log_audit(None, "ADMIN", "PUSH_FORWARD", f"Pushed Forward Loan #{loan['loan_number']}")
         return {
             "status": "success",
             "message": "Loan period pushed forward to next month",
@@ -362,7 +588,7 @@ def push_loan_forward(loan_id: int):
         conn.close()
 
 
-# 5. PAYMENTS ENGINE
+# PAYMENTS ENGINE
 @app.get("/api/payments")
 def list_payments():
     conn = get_db_connection()
@@ -409,11 +635,9 @@ def record_payment(payment: PaymentCreateRequest):
         interest_paid = Decimal(str(period["interest_paid"]))
         interest_remaining = max(Decimal("0.00"), interest_due - interest_paid)
 
-        # Priority 1: Interest, Priority 2: Principal
         interest_allocation = min(amount_dec, interest_remaining)
         principal_allocation = amount_dec - interest_allocation
 
-        # Record payment entry
         cursor.execute(
             """
             INSERT INTO payments (
@@ -434,7 +658,6 @@ def record_payment(payment: PaymentCreateRequest):
             )
         )
 
-        # Update monthly period
         new_interest_paid = interest_paid + interest_allocation
         new_principal_paid = Decimal(str(period["principal_paid"])) + principal_allocation
         cursor.execute(
@@ -442,7 +665,6 @@ def record_payment(payment: PaymentCreateRequest):
             (float(new_interest_paid), float(new_principal_paid), period["id"])
         )
 
-        # Update remaining loan principal
         current_principal = Decimal(str(loan["principal"]))
         new_principal = max(Decimal("0.00"), current_principal - principal_allocation)
 
@@ -452,6 +674,7 @@ def record_payment(payment: PaymentCreateRequest):
             cursor.execute("UPDATE loans SET principal = ? WHERE id = ?", (float(new_principal), payment.loan_id))
 
         conn.commit()
+        log_audit(None, "PAYMENT_GATEWAY", "RECORD_PAYMENT", f"Allocated KES {amount_dec} for Loan #{loan['loan_number']}")
         return {
             "status": "success",
             "message": "Payment allocated successfully",
@@ -464,7 +687,7 @@ def record_payment(payment: PaymentCreateRequest):
         conn.close()
 
 
-# 6. FORM FEES
+# FORM FEES
 @app.get("/api/form-fees")
 def list_form_fees():
     conn = get_db_connection()
@@ -522,7 +745,7 @@ def pay_form_fee(fee_id: int, pay_data: FormFeePayRequest):
         conn.close()
 
 
-# 7. COLLATERAL REGISTRY
+# COLLATERAL REGISTRY
 @app.get("/api/collateral")
 def list_collateral(search: Optional[str] = Query(None)):
     conn = get_db_connection()
