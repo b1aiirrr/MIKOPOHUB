@@ -7,8 +7,8 @@
   --gray-card: #161922;
   --gray-card-hover: #1e222e;
   --gray-border: #2a2f3d;
-  --gray-accent: #64748b;
-  --gray-light: #94a3b8;
+  --emerald-glow: #10b981;
+  --cyan-glow: #06b6d4;
 }
 
 body {
@@ -18,7 +18,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Infinite Loop Keyframe Animations */
+/* Infinite Loop Keyframes */
 @keyframes infinity-marquee {
   0% {
     transform: translateX(0%);
@@ -30,18 +30,18 @@ body {
 
 @keyframes infinity-glow {
   0%, 100% {
-    opacity: 0.25;
+    opacity: 0.3;
     transform: scale(1);
   }
   50% {
-    opacity: 0.5;
-    transform: scale(1.04);
+    opacity: 0.6;
+    transform: scale(1.05);
   }
 }
 
-/* Gray Theme Utilities */
+/* Option B Vibrant Theme Utilities */
 .tm-hero-bg {
-  background: radial-gradient(circle at 50% 10%, rgba(100, 116, 139, 0.15) 0%, rgba(15, 17, 23, 0.98) 70%);
+  background: radial-gradient(circle at 50% 10%, rgba(16, 185, 129, 0.12) 0%, rgba(15, 17, 23, 0.98) 70%);
 }
 
 .tm-navbar {
@@ -62,14 +62,14 @@ body {
 }
 
 .tm-content-box:hover {
-  border-color: #475569;
-  box-shadow: 0 20px 45px rgba(100, 116, 139, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 20px 45px rgba(16, 185, 129, 0.12);
   transform: translateY(-2px);
 }
 
 .tm-btn-primary {
   color: #f8fafc;
-  background-color: #334155;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   border: 1px solid #475569;
   padding: 10px 24px;
   border-radius: 0.75rem;
@@ -78,21 +78,16 @@ body {
 }
 
 .tm-btn-primary:hover {
-  background-color: #475569;
+  background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
   color: #ffffff;
-  box-shadow: 0 10px 25px rgba(100, 116, 139, 0.25);
+  border-color: #10b981;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25);
 }
 
-.tm-icon-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  background-color: rgba(148, 163, 184, 0.1);
-  color: #cbd5e1;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+.vibrant-gradient-text {
+  background: linear-gradient(135deg, #34d399 0%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Infinity Ticker Marquee Track */
