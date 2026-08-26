@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #090d16;
+  --foreground: #f8fafc;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Infinity Loop Keyframes & Animations */
+@keyframes infinity-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes infinity-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes infinity-border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Infinity Loop Utility Classes */
+.infinity-ticker-container {
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+
+.infinity-ticker-track {
+  display: inline-flex;
+  animation: infinity-marquee 35s linear infinite;
+  will-change: transform;
+}
+
+.infinity-ticker-container:hover .infinity-ticker-track {
+  animation-play-state: paused;
+}
+
+.infinity-glow-bg {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  animation: infinity-glow 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.infinity-gradient-text {
+  background: linear-gradient(135deg, #38bdf8 0%, #34d399 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.infinity-glass-card {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.infinity-glass-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 20px 50px rgba(14, 165, 233, 0.15);
 }
