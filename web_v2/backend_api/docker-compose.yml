@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  backend_api:
+    build: .
+    container_name: mikopohub_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount host directory containing mikopohub.db for persistence
+      - ../../desktop_legacy:/app/desktop_legacy
+    environment:
+      - ENVIRONMENT=production
+      - DB_PATH=/app/desktop_legacy/mikopohub.db
