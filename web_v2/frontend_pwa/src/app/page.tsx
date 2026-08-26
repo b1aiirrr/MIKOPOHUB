@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Dashboard from '@/components/Dashboard';
 import BorrowersManager from '@/components/BorrowersManager';
 import LoansManager from '@/components/LoansManager';
@@ -21,8 +22,7 @@ import {
   Shield, 
   Database,
   Server,
-  Smartphone,
-  ChevronDown
+  Smartphone
 } from 'lucide-react';
 
 export default function Home() {
@@ -32,18 +32,18 @@ export default function Home() {
 
   const tickerItems = [
     { label: "M-PESA Daraja Gateway", val: "STK Push Ready", color: "text-emerald-400" },
-    { label: "Shared Core Database", val: "desktop_legacy/mikopohub.db", color: "text-sky-400" },
-    { label: "Security Engine", val: "Bcrypt Salted Hash v2", color: "text-indigo-400" },
+    { label: "Shared Core Database", val: "desktop_legacy/mikopohub.db", color: "text-slate-300" },
+    { label: "Security Engine", val: "Bcrypt Salted Hash v2", color: "text-slate-300" },
     { label: "Loan Interest Rate", val: "20.0% Monthly Compound", color: "text-amber-400" },
-    { label: "Collateral Security", val: "Motorcycles, Titles & Devices", color: "text-purple-400" },
-    { label: "Progressive Web App", val: "Offline Cache Enabled", color: "text-teal-400" },
+    { label: "Collateral Security", val: "Motorcycles, Titles & Devices", color: "text-slate-300" },
+    { label: "Progressive Web App", val: "Offline Cache Enabled", color: "text-slate-300" },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white relative overflow-hidden">
-      {/* Ambient Glow Effects */}
-      <div className="infinity-glow-bg w-[500px] h-[500px] bg-sky-500/10 top-[-100px] left-[-100px]" />
-      <div className="infinity-glow-bg w-[400px] h-[400px] bg-emerald-500/10 bottom-[-100px] right-[-100px]" />
+    <div className="min-h-screen bg-[#0f1117] text-slate-100 flex flex-col font-sans selection:bg-slate-700 selection:text-white relative overflow-hidden">
+      {/* Ambient Gray Glow Lights */}
+      <div className="infinity-glow-bg w-[500px] h-[500px] bg-slate-700/10 top-[-100px] left-[-100px]" />
+      <div className="infinity-glow-bg w-[400px] h-[400px] bg-slate-600/10 bottom-[-100px] right-[-100px]" />
 
       {/* INFINITY TICKER MARQUEE BAR */}
       <div className="py-2.5 infinity-ticker-container text-xs font-mono">
@@ -62,18 +62,24 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2117 INFINITE LOOP FIXED NAVBAR */}
-      <header className="tm-navbar px-4 sm:px-8 py-3.5">
+      {/* FIXED NAVBAR WITH LOGO */}
+      <header className="tm-navbar px-4 sm:px-8 py-3.5 border-b border-[#2a2f3d]">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-sky-500/20">
-              M
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-slate-700 shadow-md">
+              <Image 
+                src="/logo.png" 
+                alt="MikopoHub Logo" 
+                fill 
+                className="object-cover" 
+                priority 
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold text-white tracking-tight font-sans">MikopoHub</h1>
-                <span className="text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/30 px-2 py-0.5 rounded-full font-semibold">
-                  Infinite Loop Edition
+                <span className="text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full font-semibold">
+                  Slate Gray Edition
                 </span>
               </div>
               <p className="text-xs text-slate-400">Micro-Lending Management Platform</p>
@@ -81,11 +87,11 @@ export default function Home() {
           </div>
 
           {/* Module Navigation Pill Buttons */}
-          <div className="flex flex-wrap items-center gap-1 bg-slate-900/90 border border-slate-800 p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto shadow-xl">
+          <div className="flex flex-wrap items-center gap-1 bg-[#161922] border border-[#2a2f3d] p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto shadow-xl">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'dashboard' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'dashboard' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
@@ -94,25 +100,25 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('borrowers')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'borrowers' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'borrowers' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-sky-400" /> Borrowers
+              <Users className="w-3.5 h-3.5 text-slate-300" /> Borrowers
             </button>
 
             <button
               onClick={() => setActiveTab('loans')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'loans' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'loans' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Loans Engine
+              <CreditCard className="w-3.5 h-3.5 text-slate-300" /> Loans Engine
             </button>
 
             <button
               onClick={() => setActiveTab('pushforward')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'pushforward' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'pushforward' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <FastForward className="w-3.5 h-3.5 text-amber-400" /> Push Forward
@@ -121,7 +127,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('payment')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'payment' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'payment' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <Send className="w-3.5 h-3.5 text-emerald-300" /> M-PESA Pay
@@ -130,28 +136,28 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('ledger')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'ledger' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'ledger' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Ledger
+              <DollarSign className="w-3.5 h-3.5 text-slate-300" /> Ledger
             </button>
 
             <button
               onClick={() => setActiveTab('formfees')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'formfees' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'formfees' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <FileText className="w-3.5 h-3.5 text-indigo-400" /> Form Fees
+              <FileText className="w-3.5 h-3.5 text-slate-300" /> Form Fees
             </button>
 
             <button
               onClick={() => setActiveTab('collateral')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'collateral' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'collateral' ? 'bg-slate-800 text-white border border-slate-600 font-semibold shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Shield className="w-3.5 h-3.5 text-purple-400" /> Collateral
+              <Shield className="w-3.5 h-3.5 text-slate-300" /> Collateral
             </button>
           </div>
         </div>
@@ -162,17 +168,17 @@ export default function Home() {
         {/* Architecture Context Banner */}
         <div className="tm-content-box p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-300">
           <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-sky-400 flex-shrink-0" />
+            <Database className="w-4 h-4 text-slate-400 flex-shrink-0" />
             <span>
-              Shared Core Database: <code className="text-sky-300 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">desktop_legacy/mikopohub.db</code>
+              Shared Database Mode: <code className="text-slate-200 font-mono bg-[#0b0d12] px-2 py-0.5 rounded border border-[#2a2f3d]">desktop_legacy/mikopohub.db</code>
             </span>
           </div>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
             <span className="flex items-center gap-1.5 text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> 100% Parity Active
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> All 7 Modules Parity
             </span>
             <span className="flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-sky-400" /> PWA Cache Enabled
+              <Smartphone className="w-3.5 h-3.5 text-slate-400" /> PWA Favicon & Logo Active
             </span>
           </div>
         </div>
@@ -189,8 +195,8 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 font-mono relative z-10">
-        MikopoHub Financial Systems &bull; Merged 2117 Infinite Loop Design &bull; Next.js 16 & FastAPI
+      <footer className="border-t border-[#2a2f3d] py-6 px-4 text-center text-xs text-slate-500 font-mono relative z-10">
+        MikopoHub Financial Systems &bull; Slate Gray & Charcoal Edition &bull; Next.js 16 & FastAPI
       </footer>
     </div>
   );
