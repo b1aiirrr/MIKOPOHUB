@@ -74,6 +74,8 @@ export default function Home() {
     }
   };
 
+  const isAdmin = user && user.role === 'ADMIN';
+
   const navCategories = [
     ...(user && user.role === 'CLIENT' ? [
       {
@@ -104,7 +106,9 @@ export default function Home() {
       items: [
         { id: 'formfees', label: 'Form Fees', icon: FileText, color: 'text-cyan-400' },
         { id: 'collateral', label: 'Collateral', icon: Shield, color: 'text-purple-400' },
-        { id: 'audit_logs', label: 'Security & Audit Logs', icon: ShieldAlert, color: 'text-red-400' },
+        ...(isAdmin ? [
+          { id: 'audit_logs', label: 'Security & Audit Logs', icon: ShieldAlert, color: 'text-red-400' }
+        ] : [])
       ]
     }
   ];
