@@ -1,17 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
   --background: #090d16;
   --foreground: #f8fafc;
+  --primary-blue: #369;
+  --primary-blue-hover: #38b;
+  --accent-blue: #37a;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: "Raleway", "Inter", sans-serif;
   overflow-x: hidden;
 }
 
-/* Infinity Loop Keyframes & Animations */
+/* Infinite Loop Keyframe Animations */
 @keyframes infinity-marquee {
   0% {
     transform: translateX(0%);
@@ -23,32 +28,79 @@ body {
 
 @keyframes infinity-glow {
   0%, 100% {
-    opacity: 0.4;
+    opacity: 0.35;
     transform: scale(1);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.05);
+    opacity: 0.75;
+    transform: scale(1.06);
   }
 }
 
-@keyframes infinity-border-flow {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* 2117 Infinite Loop Theme Utilities */
+.tm-hero-bg {
+  background: linear-gradient(180deg, rgba(9, 13, 22, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%), 
+              radial-gradient(circle at 50% 20%, rgba(54, 105, 153, 0.25) 0%, transparent 60%);
 }
 
-/* Infinity Loop Utility Classes */
+.tm-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: rgba(9, 13, 22, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  transition: all 0.3s ease;
+}
+
+.tm-content-box {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 1.25rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tm-content-box:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 20px 45px rgba(14, 165, 233, 0.15);
+  transform: translateY(-2px);
+}
+
+.tm-btn-primary {
+  color: white;
+  background-color: #369;
+  padding: 10px 24px;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.tm-btn-primary:hover {
+  background-color: #38b;
+  box-shadow: 0 10px 25px rgba(54, 136, 187, 0.3);
+}
+
+.tm-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  background-color: rgba(55, 170, 255, 0.1);
+  color: #38b;
+  border: 1px solid rgba(55, 170, 255, 0.2);
+}
+
+/* Infinity Ticker Marquee Track */
 .infinity-ticker-container {
   overflow: hidden;
   white-space: nowrap;
   position: relative;
+  background-color: #060911;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
 }
 
 .infinity-ticker-track {
@@ -64,25 +116,7 @@ body {
 .infinity-glow-bg {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(80px);
+  filter: blur(90px);
   animation: infinity-glow 8s ease-in-out infinite;
   pointer-events: none;
-}
-
-.infinity-gradient-text {
-  background: linear-gradient(135deg, #38bdf8 0%, #34d399 50%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.infinity-glass-card {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(51, 65, 85, 0.6);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-}
-
-.infinity-glass-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 20px 50px rgba(14, 165, 233, 0.15);
 }

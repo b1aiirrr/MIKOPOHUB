@@ -22,10 +22,7 @@ import {
   Database,
   Server,
   Smartphone,
-  Activity,
-  Zap,
-  TrendingUp,
-  Lock
+  ChevronDown
 } from 'lucide-react';
 
 export default function Home() {
@@ -35,23 +32,22 @@ export default function Home() {
 
   const tickerItems = [
     { label: "M-PESA Daraja Gateway", val: "STK Push Ready", color: "text-emerald-400" },
-    { label: "SQLite Core Database", val: "desktop_legacy/mikopohub.db", color: "text-sky-400" },
+    { label: "Shared Core Database", val: "desktop_legacy/mikopohub.db", color: "text-sky-400" },
     { label: "Security Engine", val: "Bcrypt Salted Hash v2", color: "text-indigo-400" },
-    { label: "Loan Interest Calculator", val: "20.0% Monthly Compound", color: "text-amber-400" },
-    { label: "Physical Collateral Registry", val: "Motorcycles, Titles & Devices", color: "text-purple-400" },
+    { label: "Loan Interest Rate", val: "20.0% Monthly Compound", color: "text-amber-400" },
+    { label: "Collateral Security", val: "Motorcycles, Titles & Devices", color: "text-purple-400" },
     { label: "Progressive Web App", val: "Offline Cache Enabled", color: "text-teal-400" },
   ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white relative overflow-hidden">
-      {/* Ambient Infinity Glow Lights */}
+      {/* Ambient Glow Effects */}
       <div className="infinity-glow-bg w-[500px] h-[500px] bg-sky-500/10 top-[-100px] left-[-100px]" />
       <div className="infinity-glow-bg w-[400px] h-[400px] bg-emerald-500/10 bottom-[-100px] right-[-100px]" />
 
-      {/* INFINITY LOOP TICKER MARQUEE BAR */}
-      <div className="bg-slate-950 border-b border-slate-800/80 py-2.5 infinity-ticker-container text-xs font-mono">
+      {/* INFINITY TICKER MARQUEE BAR */}
+      <div className="py-2.5 infinity-ticker-container text-xs font-mono">
         <div className="infinity-ticker-track">
-          {/* Duplicate 3 times for continuous seamless infinity loop */}
           {[...Array(3)].map((_, loopIdx) => (
             <div key={loopIdx} className="inline-flex items-center gap-8 px-4">
               {tickerItems.map((item, idx) => (
@@ -66,32 +62,30 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main App Bar Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3.5">
+      {/* 2117 INFINITE LOOP FIXED NAVBAR */}
+      <header className="tm-navbar px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 via-emerald-500 to-indigo-500 p-[1px] shadow-lg shadow-sky-500/20">
-              <div className="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center text-white font-black text-lg">
-                M
-              </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-sky-500/20">
+              M
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-white tracking-tight">MikopoHub</h1>
-                <span className="text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/30 px-2 py-0.5 rounded-full font-bold">
-                  Infinity v2.0
+                <h1 className="text-lg font-bold text-white tracking-tight font-sans">MikopoHub</h1>
+                <span className="text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/30 px-2 py-0.5 rounded-full font-semibold">
+                  Infinite Loop Edition
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Micro-Lending & Credit Portfolio Engine</p>
+              <p className="text-xs text-slate-400">Micro-Lending Management Platform</p>
             </div>
           </div>
 
-          {/* Module Navigation Tabs */}
-          <div className="flex flex-wrap items-center gap-1 bg-slate-900/90 border border-slate-800/80 p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto shadow-xl">
+          {/* Module Navigation Pill Buttons */}
+          <div className="flex flex-wrap items-center gap-1 bg-slate-900/90 border border-slate-800 p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto shadow-xl">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'dashboard' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'dashboard' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
@@ -100,7 +94,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('borrowers')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'borrowers' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'borrowers' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <Users className="w-3.5 h-3.5 text-sky-400" /> Borrowers
@@ -109,7 +103,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('loans')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'loans' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'loans' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Loans Engine
@@ -118,7 +112,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('pushforward')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'pushforward' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'pushforward' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <FastForward className="w-3.5 h-3.5 text-amber-400" /> Push Forward
@@ -136,7 +130,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('ledger')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'ledger' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'ledger' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Ledger
@@ -145,7 +139,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('formfees')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'formfees' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'formfees' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <FileText className="w-3.5 h-3.5 text-indigo-400" /> Form Fees
@@ -154,7 +148,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('collateral')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'collateral' ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'collateral' ? 'tm-btn-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <Shield className="w-3.5 h-3.5 text-purple-400" /> Collateral
@@ -163,10 +157,10 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* Main App Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6 relative z-10">
-        {/* Context Status Bar */}
-        <div className="infinity-glass-card p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-300">
+        {/* Architecture Context Banner */}
+        <div className="tm-content-box p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-300">
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-sky-400 flex-shrink-0" />
             <span>
@@ -178,7 +172,7 @@ export default function Home() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> 100% Parity Active
             </span>
             <span className="flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-sky-400" /> PWA Cache Ready
+              <Smartphone className="w-3.5 h-3.5 text-sky-400" /> PWA Cache Enabled
             </span>
           </div>
         </div>
@@ -196,7 +190,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 font-mono relative z-10">
-        MikopoHub Financial Systems &bull; Infinity Loop UI Edition &bull; Next.js 16 & FastAPI
+        MikopoHub Financial Systems &bull; Merged 2117 Infinite Loop Design &bull; Next.js 16 & FastAPI
       </footer>
     </div>
   );
