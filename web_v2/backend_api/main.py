@@ -165,6 +165,7 @@ class CollateralUpdateRequest(BaseModel):
 
 class RegisterRequest(BaseModel):
     username: str
+    email: Optional[str] = ""
     password: str
     full_name: str
     phone: str
@@ -172,8 +173,14 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str
+    username: str  # Can be username or email
     password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    email: str
+    full_name: str
+    google_id: Optional[str] = ""
 
 
 class ClientLoanApplyRequest(BaseModel):
@@ -188,13 +195,13 @@ def register_user(req: RegisterRequest):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Check if username exists
-        cursor.execute("SELECT id FROM users WHERE username = ?", (req.username.strip(),))
+        # Check if username or email exists
+        cursor.execute("SELECT id FROM users WHERE username = ? OR (email != '' AND email = ?)", (req.username.strip(), req.email.strip().lower()))
         if cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Username already exists")
+            raise HTTPException(status_code=400, detail="Username or Email already registered")
 
         # Auto-create or link matching borrower record
-        cursor.execute("SELECT id FROM borrowers WHERE phone = ? OR national_id = ?", (req.phone.strip(), req.national_id.strip()))
+        cursor.execute("SELECT id FROM borrowers WHERE phone = ? OR national_id = ? OR (email != '' AND email = ?)", (req.phone.strip(), req.national_id.strip(), req.email.strip().lower()))
         existing_b = cursor.fetchone()
         
         if existing_b:
@@ -202,20 +209,20 @@ def register_user(req: RegisterRequest):
         else:
             b_num = generate_number("BRW", "borrowers")
             cursor.execute(
-                "INSERT INTO borrowers (borrower_number, full_name, phone, national_id) VALUES (?, ?, ?, ?)",
-                (b_num, req.full_name, req.phone, req.national_id)
+                "INSERT INTO borrowers (borrower_number, full_name, phone, national_id, email) VALUES (?, ?, ?, ?, ?)",
+                (b_num, req.full_name, req.phone, req.national_id, req.email.strip().lower())
             )
             borrower_id = cursor.lastrowid
 
         pwd_hash = hash_password(req.password)
         cursor.execute(
-            "INSERT INTO users (username, password_hash, role, borrower_id, created_at) VALUES (?, ?, 'CLIENT', ?, ?)",
-            (req.username.strip(), pwd_hash, borrower_id, datetime.utcnow().isoformat())
+            "INSERT INTO users (username, email, password_hash, role, borrower_id, created_at) VALUES (?, ?, ?, 'CLIENT', ?, ?)",
+            (req.username.strip(), req.email.strip().lower(), pwd_hash, borrower_id, datetime.utcnow().isoformat())
         )
         user_id = cursor.lastrowid
         conn.commit()
 
-        token = create_access_token({"sub": str(user_id), "username": req.username, "role": "CLIENT", "borrower_id": borrower_id})
+        token = create_access_token({"sub": str(user_id), "username": req.username, "email": req.email, "role": "CLIENT", "borrower_id": borrower_id})
         log_audit(user_id, req.username, "REGISTER", f"Created client account linked to Borrower #{borrower_id}")
 
         return {
@@ -224,6 +231,7 @@ def register_user(req: RegisterRequest):
             "user": {
                 "id": user_id,
                 "username": req.username,
+                "email": req.email,
                 "role": "CLIENT",
                 "borrower_id": borrower_id
             }
@@ -237,11 +245,12 @@ def login_user(req: LoginRequest):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM users WHERE username = ?", (req.username.strip(),))
+        user_input = req.username.strip().lower()
+        cursor.execute("SELECT * FROM users WHERE username = ? OR LOWER(email) = ?", (req.username.strip(), user_input))
         user = cursor.fetchone()
 
         if not user or not verify_password(req.password, user["password_hash"]):
-            raise HTTPException(status_code=401, detail="Invalid username or password")
+            raise HTTPException(status_code=401, detail="Invalid username, email, or password")
 
         token = create_access_token({
             "sub": str(user["id"]),
@@ -258,6 +267,70 @@ def login_user(req: LoginRequest):
             "user": {
                 "id": user["id"],
                 "username": user["username"],
+                "email": user["email"] if "email" in user.keys() else "",
+                "role": user["role"],
+                "borrower_id": user["borrower_id"]
+            }
+        }
+    finally:
+        conn.close()
+
+
+@app.post("/api/auth/google-login")
+def google_login_user(req: GoogleLoginRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        email_clean = req.email.strip().lower()
+        cursor.execute("SELECT * FROM users WHERE LOWER(email) = ? OR username = ?", (email_clean, email_clean.split("@")[0]))
+        user = cursor.fetchone()
+
+        if not user:
+            # Auto-register borrower
+            cursor.execute("SELECT id FROM borrowers WHERE LOWER(email) = ?", (email_clean,))
+            existing_b = cursor.fetchone()
+            if existing_b:
+                borrower_id = existing_b["id"]
+            else:
+                b_num = generate_number("BRW", "borrowers")
+                cursor.execute(
+                    "INSERT INTO borrowers (borrower_number, full_name, phone, email) VALUES (?, ?, '254700000000', ?)",
+                    (b_num, req.full_name, email_clean)
+                )
+                borrower_id = cursor.lastrowid
+
+            pwd_hash = hash_password(f"google_oauth_{email_clean}")
+            username = email_clean.split("@")[0]
+            cursor.execute(
+                "INSERT INTO users (username, email, password_hash, role, borrower_id, created_at) VALUES (?, ?, ?, 'CLIENT', ?, ?)",
+                (username, email_clean, pwd_hash, borrower_id, datetime.utcnow().isoformat())
+            )
+            user_id = cursor.lastrowid
+            conn.commit()
+            role = "CLIENT"
+        else:
+            user_id = user["id"]
+            username = user["username"]
+            role = user["role"]
+            borrower_id = user["borrower_id"]
+
+        token = create_access_token({"sub": str(user_id), "username": username, "email": email_clean, "role": role, "borrower_id": borrower_id})
+        log_audit(user_id, username, "GOOGLE_LOGIN", f"Signed in with Gmail: {email_clean}")
+
+        return {
+            "status": "success",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "username": username,
+                "email": email_clean,
+                "role": role,
+                "borrower_id": borrower_id
+            }
+        }
+    finally:
+        conn.close()
+
                 "role": user["role"],
                 "borrower_id": user["borrower_id"]
             }
