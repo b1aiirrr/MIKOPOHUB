@@ -12,6 +12,7 @@ import FormFeesManager from '@/components/FormFeesManager';
 import CollateralManager from '@/components/CollateralManager';
 import ClientPortal from '@/components/ClientPortal';
 import AuditLogMonitor from '@/components/AuditLogMonitor';
+import AdminPanel from '@/components/AdminPanel';
 import AuthModal from '@/components/AuthModal';
 
 import { 
@@ -30,12 +31,13 @@ import {
   UserCheck,
   LogIn,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'borrowers' | 'loans' | 'pushforward' | 'payment' | 'ledger' | 'formfees' | 'collateral' | 'client_portal' | 'audit_logs'
+    'dashboard' | 'borrowers' | 'loans' | 'pushforward' | 'payment' | 'ledger' | 'formfees' | 'collateral' | 'client_portal' | 'audit_logs' | 'admin_panel'
   >('dashboard');
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -52,6 +54,8 @@ export default function Home() {
       setToken(savedToken);
       if (parsedUser.role === 'CLIENT') {
         setActiveTab('client_portal');
+      } else if (parsedUser.role === 'ADMIN') {
+        setActiveTab('admin_panel');
       }
     }
   }, []);
@@ -70,7 +74,7 @@ export default function Home() {
     if (userData.role === 'CLIENT') {
       setActiveTab('client_portal');
     } else {
-      setActiveTab('dashboard');
+      setActiveTab('admin_panel');
     }
   };
 
@@ -88,25 +92,26 @@ export default function Home() {
     {
       title: "PORTFOLIO & CORE",
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-sky-400' },
-        { id: 'borrowers', label: 'Borrowers', icon: Users, color: 'text-indigo-400' },
-        { id: 'loans', label: 'Loans Engine', icon: CreditCard, color: 'text-emerald-400' },
+        { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, color: 'text-sky-400' },
+        { id: 'pushforward', label: 'Push Forward Calculator', icon: FastForward, color: 'text-amber-400' },
       ]
     },
     {
-      title: "TRANSACTIONS",
+      title: "TRANSACTIONS & PAYMENTS",
       items: [
-        { id: 'pushforward', label: 'Push Forward', icon: FastForward, color: 'text-amber-400' },
-        { id: 'payment', label: 'M-PESA Pay', icon: Send, color: 'text-emerald-400', highlight: true },
-        { id: 'ledger', label: 'Ledger', icon: DollarSign, color: 'text-emerald-400' },
+        { id: 'payment', label: 'M-PESA Direct Pay', icon: Send, color: 'text-emerald-400', highlight: true },
+        { id: 'ledger', label: 'Payments Ledger', icon: DollarSign, color: 'text-emerald-400' },
       ]
     },
     {
-      title: "ADMIN & SECURITY",
+      title: "ADMIN OPERATIONS & MANAGEMENT",
       items: [
-        { id: 'formfees', label: 'Form Fees', icon: FileText, color: 'text-cyan-400' },
-        { id: 'collateral', label: 'Collateral', icon: Shield, color: 'text-purple-400' },
+        { id: 'admin_panel', label: 'Admin Control Center', icon: ShieldCheck, color: 'text-emerald-400', highlight: true },
         ...(isAdmin ? [
+          { id: 'loans', label: 'Loans Engine & Issuance', icon: CreditCard, color: 'text-emerald-400' },
+          { id: 'borrowers', label: 'Borrowers Directory', icon: Users, color: 'text-indigo-400' },
+          { id: 'formfees', label: 'Form Fees', icon: FileText, color: 'text-cyan-400' },
+          { id: 'collateral', label: 'Physical Collateral', icon: Shield, color: 'text-purple-400' },
           { id: 'audit_logs', label: 'Security & Audit Logs', icon: ShieldAlert, color: 'text-red-400' }
         ] : [])
       ]
@@ -116,15 +121,16 @@ export default function Home() {
   const getActiveTabTitle = () => {
     switch (activeTab) {
       case 'dashboard': return 'Portfolio Overview';
-      case 'borrowers': return 'Borrowers Management';
-      case 'loans': return 'Credit & Loans Servicing';
+      case 'borrowers': return 'Borrowers Directory (Admin)';
+      case 'loans': return 'Loans Engine & Credit Servicing (Admin)';
       case 'pushforward': return 'Push Forward Calculator';
       case 'payment': return 'M-PESA Payment Allocation';
       case 'ledger': return 'General Payments Ledger';
-      case 'formfees': return 'Form Fees & Registration';
-      case 'collateral': return 'Collateral Physical Registry';
+      case 'formfees': return 'Form Fees & Registration (Admin)';
+      case 'collateral': return 'Collateral Physical Registry (Admin)';
       case 'client_portal': return 'Borrower Client Portal';
-      case 'audit_logs': return 'Security & Audit Logs Monitor';
+      case 'audit_logs': return 'Security & Audit Logs Monitor (Admin)';
+      case 'admin_panel': return 'Admin Operations Control Center';
       default: return 'MikopoHub';
     }
   };
@@ -271,9 +277,17 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 bg-[#161922] border border-[#2a2f3d] p-1 rounded-xl">
               <button 
-                onClick={() => setActiveTab('loans')}
+                onClick={() => {
+                  if (user?.role === 'CLIENT') {
+                    setActiveTab('client_portal');
+                  } else if (isAdmin) {
+                    setActiveTab('loans');
+                  } else {
+                    setAuthModalOpen(true);
+                  }
+                }}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'loans' 
+                  activeTab === 'loans' || activeTab === 'client_portal'
                     ? 'bg-emerald-600 text-white shadow-md' 
                     : 'text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
@@ -318,6 +332,7 @@ export default function Home() {
           {activeTab === 'collateral' && <CollateralManager />}
           {activeTab === 'client_portal' && <ClientPortal user={user || { borrower_id: 1, username: 'Guest' }} />}
           {activeTab === 'audit_logs' && <AuditLogMonitor />}
+          {activeTab === 'admin_panel' && <AdminPanel user={user} />}
         </main>
       </div>
     </div>
