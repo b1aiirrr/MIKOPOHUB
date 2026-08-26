@@ -23,8 +23,8 @@ import {
   Menu,
   X,
   PlusCircle,
-  TrendingUp,
-  Search
+  FilePlus2,
+  Receipt
 } from 'lucide-react';
 
 export default function Home() {
@@ -152,23 +152,12 @@ export default function Home() {
             </div>
           ))}
         </div>
-
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-slate-800/80 bg-[#090b10]/40">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <div className="text-xs">
-              <div className="font-semibold text-slate-200">SQLite Connected</div>
-              <div className="text-[10px] text-slate-500 font-mono">Shared WAL Mode</div>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* MAIN CONTENT WORKSPACE */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* MINIMAL TOP HEADER BAR */}
-        <header className="sticky top-0 z-30 bg-[#090b10]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+        {/* MINIMAL TOP HEADER BAR WITH REQUEST & PAYMENT TABS */}
+        <header className="sticky top-0 z-30 bg-[#090b10]/95 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setSidebarOpen(true)}
@@ -178,27 +167,33 @@ export default function Home() {
             </button>
             <div>
               <h2 className="text-base font-bold text-white tracking-tight">{getActiveTabTitle()}</h2>
-              <p className="text-xs text-slate-400 hidden sm:block">MikopoHub Micro-Lending Platform</p>
             </div>
           </div>
 
-          {/* Quick Header Actions */}
-          <div className="flex items-center gap-3">
+          {/* TOP HEADER QUICK TABS: REQUEST LOAN & M-PESA PAYMENT */}
+          <div className="flex items-center gap-2 bg-[#161922] border border-[#2a2f3d] p-1 rounded-xl">
             <button 
-              onClick={() => setActiveTab('payment')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all shadow-md active:scale-95"
+              onClick={() => setActiveTab('loans')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'loans' 
+                  ? 'bg-emerald-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
             >
-              <Send className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Record Payment</span>
-              <span className="sm:hidden">Pay</span>
+              <FilePlus2 className="w-3.5 h-3.5" />
+              <span>Request Loan</span>
             </button>
 
             <button 
-              onClick={() => setActiveTab('loans')}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all active:scale-95 hidden md:flex"
+              onClick={() => setActiveTab('payment')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'payment' 
+                  ? 'bg-emerald-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
             >
-              <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Issue Loan</span>
+              <Receipt className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Record Payment</span>
             </button>
           </div>
         </header>
