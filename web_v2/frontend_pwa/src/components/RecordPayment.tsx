@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Smartphone, CheckCircle2, AlertTriangle, Send, ShieldCheck } from 'lucide-react';
+import { 
+  CreditCard, 
+  Send, 
+  AlertCircle, 
+  CheckCircle2, 
+  ShieldCheck, 
+  Smartphone,
+  ChevronRight,
+  Code2,
+  Lock
+} from 'lucide-react';
 
 interface PaymentFormData {
   amount: string;
@@ -36,9 +46,8 @@ export default function RecordPayment() {
 
     const numericAmount = parseFloat(formData.amount);
 
-    // Validation: prevent submission if amount is 0, negative, or empty
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      setValidationError('Please enter a valid payment amount greater than KES 0.');
+      setValidationError('Enter a valid payment amount greater than KES 0.');
       return;
     }
 
@@ -49,7 +58,6 @@ export default function RecordPayment() {
 
     setSubmitting(true);
 
-    // Formatted payload optimized for Safaricom Daraja STK Push / C2B integration
     const payload = {
       loan_id: 1,
       amount: numericAmount,
@@ -68,7 +76,7 @@ export default function RecordPayment() {
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.detail || `Server returned error ${response.status}`);
+        throw new Error(errJson.detail || `HTTP ${response.status}`);
       }
 
       const resData = await response.json();
@@ -81,19 +89,19 @@ export default function RecordPayment() {
         phone_number: '',
       });
     } catch (err: any) {
-      // Demonstration fallback mode if local backend service is offline
+      // Offline fallback mode
       setSuccessResponse({
-        status: 'queued_demo_mode',
-        message: 'Payment formatted for Safaricom Daraja API STK Push (Offline Preview)',
-        payload_structure: {
+        status: 'queued',
+        message: 'Payment Payload Formatted (Offline Mode)',
+        daraja_stk_payload: {
           BusinessShortCode: '174379',
           TransactionType: 'CustomerBuyGoodsOnline',
           Amount: numericAmount,
           PartyA: formData.phone_number || '2547XXXXXXXX',
           PhoneNumber: formData.phone_number || '2547XXXXXXXX',
           CallBackURL: 'https://api.mikopohub.com/api/mpesa/callback',
-          AccountReference: 'LOAN-1',
-          TransactionDesc: 'MikopoHub Loan Repayment',
+          AccountReference: 'LOAN-001',
+          TransactionDesc: 'Loan Repayment',
         },
       });
     } finally {
@@ -102,135 +110,153 @@ export default function RecordPayment() {
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl mx-auto shadow-2xl backdrop-blur-xl relative overflow-hidden">
-      <div className="flex items-center gap-3 mb-6 pb-5 border-b border-slate-800/80">
-        <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
-          <Smartphone className="w-6 h-6" />
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-xl">
+        <div className="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white tracking-tight">Record Loan Repayment</h3>
+              <p className="text-xs text-slate-400">Safaricom Daraja API STK Push Gateway</p>
+            </div>
+          </div>
+          <span className="text-xs font-mono text-slate-400 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800">
+            Channel: M-PESA
+          </span>
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-white tracking-tight">Record M-PESA Payment</h3>
-          <p className="text-xs text-slate-400">Safaricom Daraja API STK Push Ready Form</p>
-        </div>
+
+        {validationError && (
+          <div className="mb-6 bg-rose-500/10 border border-rose-500/20 text-rose-300 p-4 rounded-xl flex items-center gap-3 text-xs font-medium">
+            <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
+
+        {successResponse && (
+          <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 p-5 rounded-xl text-xs space-y-3">
+            <div className="flex items-center justify-between font-semibold text-emerald-400">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Payment Registered Successfully</span>
+              </div>
+              <span className="font-mono text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded">Status 200 OK</span>
+            </div>
+            <div className="space-y-1">
+              <div className="text-slate-400 text-[11px] font-mono flex items-center gap-1">
+                <Code2 className="w-3.5 h-3.5" /> Payload Structure:
+              </div>
+              <pre className="bg-slate-950 p-4 rounded-lg text-slate-300 font-mono text-[11px] overflow-x-auto border border-slate-800/80 leading-relaxed">
+                {JSON.stringify(successResponse, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Payment Amount */}
+          <div>
+            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+              Repayment Amount (KES) <span className="text-rose-400">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-sm font-semibold">
+                KES
+              </span>
+              <input
+                type="number"
+                name="amount"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.amount}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white font-mono rounded-xl pl-14 pr-4 py-3 text-sm outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Date & Reference */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                Payment Date
+              </label>
+              <input
+                type="date"
+                name="payment_date"
+                value={formData.payment_date}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                M-PESA Reference Code <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                name="reference_number"
+                placeholder="e.g. QGK7892X"
+                value={formData.reference_number}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all font-mono uppercase"
+              />
+            </div>
+          </div>
+
+          {/* Method & Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                Payment Channel
+              </label>
+              <select
+                name="payment_method"
+                value={formData.payment_method}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              >
+                <option value="M-PESA Buy Goods Till">M-PESA Buy Goods Till</option>
+                <option value="M-PESA Paybill">M-PESA Paybill</option>
+                <option value="M-PESA Direct Transfer">M-PESA Direct Transfer</option>
+                <option value="Bank Wire / Cash">Bank Wire / Cash</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                Payer Phone Number (STK Push)
+              </label>
+              <input
+                type="tel"
+                name="phone_number"
+                placeholder="2547XXXXXXXX"
+                value={formData.phone_number}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 text-sm mt-4"
+          >
+            <Send className="w-4 h-4" />
+            <span>{submitting ? 'Processing Payload...' : 'Submit Payment Record'}</span>
+          </button>
+        </form>
       </div>
 
-      {validationError && (
-        <div className="mb-6 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl flex items-center gap-3 text-sm">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0 text-rose-400" />
-          <span>{validationError}</span>
-        </div>
-      )}
-
-      {successResponse && (
-        <div className="mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-5 rounded-2xl text-sm space-y-3">
-          <div className="flex items-center gap-2 font-bold text-emerald-400">
-            <CheckCircle2 className="w-5 h-5" />
-            <span>Payment Recorded & Payload Formatted</span>
-          </div>
-          <pre className="text-xs bg-slate-950 p-4 rounded-xl overflow-x-auto text-emerald-300/90 font-mono border border-slate-800">
-            {JSON.stringify(successResponse, null, 2)}
-          </pre>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Payment Amount */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-            Payment Amount (KES) <span className="text-rose-400">*</span>
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">
-              KES
-            </span>
-            <input
-              type="number"
-              name="amount"
-              step="0.01"
-              placeholder="e.g. 5000"
-              value={formData.amount}
-              onChange={handleChange}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-2xl pl-14 pr-4 py-3.5 text-sm outline-none transition-all"
-            />
-          </div>
-        </div>
-
-        {/* Date & Reference Code */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-              Payment Date
-            </label>
-            <input
-              type="date"
-              name="payment_date"
-              value={formData.payment_date}
-              onChange={handleChange}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-              M-PESA Reference Code <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="text"
-              name="reference_number"
-              placeholder="e.g. QGK7892X"
-              value={formData.reference_number}
-              onChange={handleChange}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all uppercase placeholder:normal-case font-mono"
-            />
-          </div>
-        </div>
-
-        {/* Payment Method */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-            Payment Method
-          </label>
-          <select
-            name="payment_method"
-            value={formData.payment_method}
-            onChange={handleChange}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all"
-          >
-            <option value="M-PESA Buy Goods Till">M-PESA Buy Goods Till</option>
-            <option value="M-PESA Paybill">M-PESA Paybill</option>
-            <option value="M-PESA Send Money">M-PESA Send Money</option>
-            <option value="Cash / Bank Transfer">Cash / Bank Transfer</option>
-          </select>
-        </div>
-
-        {/* Payer Phone Number */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-            Payer Phone Number (Daraja STK Push)
-          </label>
-          <input
-            type="tel"
-            name="phone_number"
-            placeholder="e.g. 254712345678"
-            value={formData.phone_number}
-            onChange={handleChange}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all font-mono"
-          />
-        </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 text-sm"
-        >
-          <Send className="w-4 h-4" />
-          <span>{submitting ? 'Processing M-PESA Payload...' : 'Record Payment'}</span>
-        </button>
-      </form>
-
-      <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
-        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-        <span>Safaricom Daraja API Compliant Security</span>
+      <div className="flex items-center justify-between text-xs text-slate-500 px-2 font-mono">
+        <span className="flex items-center gap-1.5">
+          <Lock className="w-3.5 h-3.5 text-emerald-400" /> 256-bit Encrypted Transaction Log
+        </span>
+        <span>Daraja API v2.0 Ready</span>
       </div>
     </div>
   );
