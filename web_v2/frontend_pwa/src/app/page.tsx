@@ -19,11 +19,7 @@ import {
   Send, 
   DollarSign, 
   FileText, 
-  Shield, 
-  Database,
-  Server,
-  Smartphone,
-  TrendingUp
+  Shield
 } from 'lucide-react';
 
 export default function Home() {
@@ -32,24 +28,22 @@ export default function Home() {
   >('dashboard');
 
   const tickerItems = [
-    { label: "M-PESA Daraja Gateway", val: "STK Push Ready", color: "text-emerald-400" },
-    { label: "Shared Core Database", val: "desktop_legacy/mikopohub.db", color: "text-cyan-400" },
-    { label: "Security Engine", val: "Bcrypt Salted Hash v2", color: "text-emerald-400" },
-    { label: "Loan Interest Rate", val: "20.0% Monthly Compound", color: "text-amber-400" },
-    { label: "Collateral Security", val: "Motorcycles, Titles & Devices", color: "text-cyan-400" },
-    { label: "Progressive Web App", val: "Offline Cache Enabled", color: "text-emerald-400" },
+    { label: "M-PESA Gateway", val: "Active", color: "text-emerald-400" },
+    { label: "Interest Rate", val: "20.0% Monthly", color: "text-slate-300" },
+    { label: "Collateral Registry", val: "Secured", color: "text-slate-300" },
+    { label: "System Status", val: "Operational", color: "text-emerald-400" },
   ];
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-slate-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white relative overflow-hidden">
-      {/* Ambient Vibrant Glow Lights */}
-      <div className="infinity-glow-bg w-[500px] h-[500px] bg-emerald-500/10 top-[-100px] left-[-100px]" />
-      <div className="infinity-glow-bg w-[400px] h-[400px] bg-cyan-500/10 bottom-[-100px] right-[-100px]" />
+      {/* Ambient Glow Lights */}
+      <div className="infinity-glow-bg w-[500px] h-[500px] bg-emerald-500/5 top-[-100px] left-[-100px]" />
+      <div className="infinity-glow-bg w-[400px] h-[400px] bg-slate-600/5 bottom-[-100px] right-[-100px]" />
 
       {/* INFINITY TICKER MARQUEE BAR */}
       <div className="py-2.5 infinity-ticker-container text-xs font-mono">
         <div className="infinity-ticker-track">
-          {[...Array(3)].map((_, loopIdx) => (
+          {[...Array(4)].map((_, loopIdx) => (
             <div key={loopIdx} className="inline-flex items-center gap-8 px-4">
               {tickerItems.map((item, idx) => (
                 <div key={idx} className="inline-flex items-center gap-2">
@@ -63,26 +57,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* FIXED NAVBAR WITH OPTION B VIBRANT LOGO */}
+      {/* CLEAN HEADER NAVBAR */}
       <header className="tm-navbar px-4 sm:px-8 py-3.5 border-b border-[#2a2f3d]">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="relative w-11 h-11 rounded-xl overflow-hidden border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-slate-700 shadow-md">
               <Image 
                 src="/logo.png" 
-                alt="MikopoHub Option B Vibrant Logo" 
+                alt="MikopoHub Logo" 
                 fill 
                 className="object-cover" 
                 priority 
               />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-extrabold text-white tracking-tight font-sans">MikopoHub</h1>
-                <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-                  Option B Vibrant
-                </span>
-              </div>
+              <h1 className="text-lg font-bold text-white tracking-tight font-sans">MikopoHub</h1>
               <p className="text-xs text-slate-400">Micro-Lending Management Platform</p>
             </div>
           </div>
@@ -92,7 +81,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'dashboard' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'dashboard' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
@@ -101,25 +90,25 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('borrowers')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'borrowers' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'borrowers' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-cyan-400" /> Borrowers
+              <Users className="w-3.5 h-3.5 text-slate-300" /> Borrowers
             </button>
 
             <button
               onClick={() => setActiveTab('loans')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'loans' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'loans' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Loans Engine
+              <CreditCard className="w-3.5 h-3.5 text-slate-300" /> Loans Engine
             </button>
 
             <button
               onClick={() => setActiveTab('pushforward')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'pushforward' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'pushforward' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <FastForward className="w-3.5 h-3.5 text-amber-400" /> Push Forward
@@ -128,7 +117,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('payment')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'payment' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'payment' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <Send className="w-3.5 h-3.5 text-emerald-300" /> M-PESA Pay
@@ -137,28 +126,28 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('ledger')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'ledger' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'ledger' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Ledger
+              <DollarSign className="w-3.5 h-3.5 text-slate-300" /> Ledger
             </button>
 
             <button
               onClick={() => setActiveTab('formfees')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'formfees' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'formfees' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <FileText className="w-3.5 h-3.5 text-indigo-400" /> Form Fees
+              <FileText className="w-3.5 h-3.5 text-slate-300" /> Form Fees
             </button>
 
             <button
               onClick={() => setActiveTab('collateral')}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                activeTab === 'collateral' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                activeTab === 'collateral' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Shield className="w-3.5 h-3.5 text-cyan-400" /> Collateral
+              <Shield className="w-3.5 h-3.5 text-slate-300" /> Collateral
             </button>
           </div>
         </div>
@@ -166,24 +155,6 @@ export default function Home() {
 
       {/* Main App Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6 relative z-10">
-        {/* Architecture Context Banner */}
-        <div className="tm-content-box p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-300">
-          <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span>
-              Shared Database Mode: <code className="text-emerald-300 font-mono bg-[#0b0d12] px-2 py-0.5 rounded border border-[#2a2f3d]">desktop_legacy/mikopohub.db</code>
-            </span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
-            <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> All 7 Modules Parity
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-cyan-400" /> Option B Favicon Active
-            </span>
-          </div>
-        </div>
-
         {/* Dynamic Tab Views */}
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'borrowers' && <BorrowersManager />}
@@ -195,9 +166,9 @@ export default function Home() {
         {activeTab === 'collateral' && <CollateralManager />}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[#2a2f3d] py-6 px-4 text-center text-xs text-slate-500 font-mono relative z-10">
-        MikopoHub Financial Systems &bull; Option B Vibrant Edition &bull; Next.js 16 & FastAPI
+      {/* Clean Footer */}
+      <footer className="border-t border-[#2a2f3d] py-6 px-4 text-center text-xs text-slate-500 font-sans relative z-10">
+        MikopoHub Financial Systems &bull; Micro-Lending Management Platform
       </footer>
     </div>
   );
