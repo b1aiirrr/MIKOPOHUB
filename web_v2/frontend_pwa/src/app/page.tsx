@@ -202,7 +202,10 @@ export default function Home() {
             </div>
           ) : (
             <button
-              onClick={() => setAuthModalOpen(true)}
+              onClick={() => {
+                setSidebarOpen(false);
+                setAuthModalOpen(true);
+              }}
               className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow"
             >
               <LogIn className="w-3.5 h-3.5 text-emerald-400" />

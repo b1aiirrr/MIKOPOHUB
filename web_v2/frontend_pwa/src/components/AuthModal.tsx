@@ -96,8 +96,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="relative w-full max-w-md bg-[#161922] border border-[#2a2f3d] rounded-2xl shadow-2xl overflow-hidden p-6 space-y-5">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-[#161922] border border-[#2a2f3d] rounded-2xl shadow-2xl p-6 space-y-5 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3.5">
           <div className="flex items-center gap-3">

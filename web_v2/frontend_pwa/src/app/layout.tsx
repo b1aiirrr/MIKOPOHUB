@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MIKOPOHUB | Micro-Lending PWA",
-  description: "Modern, Mobile-Friendly Micro-Lending Management Platform",
+  title: "MikopoHub - Micro-Lending Engine",
+  description: "Modern Micro-Lending Management & Credit Servicing Platform",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0284c7",
+  themeColor: "#059669",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
