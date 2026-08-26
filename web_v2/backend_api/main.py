@@ -1,26 +1,24 @@
 import sqlite3
+from datetime import date, datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from auth import ADMIN_PASSWORD_HASH, verify_password
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI(
     title="MIKOPOHUB Web API",
     version="2.0.0",
-    description="FastAPI Backend for MikopoHub Micro-Lending PWA",
+    description="Complete Micro-Lending API covering Borrowers, Loans, Push-Forward, Payments, Form Fees, Collateral, and Reporting",
 )
 
-# CORS Middleware allowing Next.js frontend requests
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,10 +30,8 @@ DB_PATH = (BASE_DIR.parent.parent / "desktop_legacy" / "mikopohub.db").resolve()
 
 
 def get_db_connection() -> sqlite3.Connection:
-    """Connects to the shared mikopohub.db SQLite database."""
     target_path = DB_PATH
     if not target_path.exists():
-        # Local fallback if running standalone backend tests
         local_fallback = BASE_DIR / "mikopohub.db"
         if local_fallback.exists():
             target_path = local_fallback
@@ -45,130 +41,555 @@ def get_db_connection() -> sqlite3.Connection:
                 detail=f"Database file not found at {DB_PATH}",
             )
 
-    connection = sqlite3.connect(target_path)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON;")
-    return connection
+    conn = sqlite3.connect(target_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+def money(val) -> Decimal:
+    return Decimal(str(val)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-class PaymentSubmitRequest(BaseModel):
-    loan_id: Optional[int] = 1
+def generate_number(prefix: str, table: str) -> str:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT COUNT(*) AS total FROM {table}")
+    total = cursor.fetchone()["total"]
+    conn.close()
+    return f"{prefix}-{total + 1:04d}"
+
+
+# --- Pydantic Request Models ---
+class BorrowerCreateRequest(BaseModel):
+    full_name: str
+    phone: str
+    national_id: Optional[str] = ""
+    location: Optional[str] = ""
+
+
+class LoanCreateRequest(BaseModel):
+    borrower_id: int
+    principal: float
+    interest_rate: Optional[float] = 20.0
+    issue_date: Optional[str] = None
+
+
+class PaymentCreateRequest(BaseModel):
+    loan_id: int
     amount: float
-    payment_date: str
-    reference_number: str
-    payment_method: str = "M-PESA Buy Goods Till"
+    payment_method: Optional[str] = "M-PESA Buy Goods Till"
+    reference_number: Optional[str] = ""
     phone_number: Optional[str] = "254700000000"
 
+
+class FormFeeCreateRequest(BaseModel):
+    borrower_id: int
+    requested_amount: float
+
+
+class FormFeePayRequest(BaseModel):
+    payment_method: Optional[str] = "M-PESA"
+    reference_number: str
+
+
+class CollateralCreateRequest(BaseModel):
+    loan_id: int
+    security_type: str
+    description: str
+    estimated_value: Optional[float] = 0.0
+    serial_number: Optional[str] = ""
+    condition: Optional[str] = "Good"
+    notes: Optional[str] = ""
+
+
+class CollateralUpdateRequest(BaseModel):
+    status: str
+    notes: Optional[str] = ""
+
+
+# --- API Routes ---
 
 @app.get("/")
 def read_root():
     return {
         "status": "online",
-        "service": "MIKOPOHUB Web API",
+        "service": "MIKOPOHUB Full Web API",
         "version": "2.0.0",
-        "db_connected": DB_PATH.exists(),
+        "features": [
+            "Borrowers", "Loans", "Push-Forward", "Payments", 
+            "Form Fees", "Collateral Registry", "Reporting"
+        ]
     }
 
 
-@app.post("/api/auth/login")
-def login(credentials: LoginRequest):
-    """Authenticate administrator using bcrypt password verification."""
-    if credentials.username == "admin" and verify_password(
-        credentials.password, ADMIN_PASSWORD_HASH
-    ):
-        return {
-            "status": "success",
-            "message": "Authentication successful",
-            "token": "admin-session-token-v2",
-        }
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid administrator credentials",
-    )
-
-
+# 1. DASHBOARD METRICS
 @app.get("/api/dashboard")
 def get_dashboard_summary():
-    """Queries shared SQLite database and returns summary metrics."""
     conn = get_db_connection()
     cursor = conn.cursor()
-
     try:
-        # Total Borrowers
         cursor.execute("SELECT COUNT(*) AS count FROM borrowers")
-        row = cursor.fetchone()
-        total_borrowers = row["count"] if row else 0
+        total_borrowers = cursor.fetchone()["count"]
 
-        # Active Loans
-        cursor.execute(
-            "SELECT COUNT(*) AS count FROM loans WHERE status = 'ACTIVE'"
-        )
-        row = cursor.fetchone()
-        active_loans = row["count"] if row else 0
+        cursor.execute("SELECT COUNT(*) AS count FROM loans WHERE status = 'ACTIVE'")
+        active_loans = cursor.fetchone()["count"]
 
-        # Total Lent Principal
         cursor.execute("SELECT COALESCE(SUM(principal), 0.0) AS total FROM loans")
-        row = cursor.fetchone()
-        total_lent = row["total"] if row else 0.0
+        total_lent = cursor.fetchone()["total"]
 
-        # Total Repaid Amount
         cursor.execute("SELECT COALESCE(SUM(amount), 0.0) AS total FROM payments")
-        row = cursor.fetchone()
-        total_repaid = row["total"] if row else 0.0
+        total_repaid = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS count FROM collateral WHERE status = 'HELD'")
+        held_collateral = cursor.fetchone()["count"]
+
+        cursor.execute("SELECT COUNT(*) AS count FROM form_fees WHERE payment_status = 'UNPAID'")
+        unpaid_fees = cursor.fetchone()["count"]
 
         return {
             "total_borrowers": total_borrowers,
             "active_loans": active_loans,
             "total_lent": total_lent,
             "total_repaid": total_repaid,
+            "held_collateral": held_collateral,
+            "unpaid_fees": unpaid_fees,
             "currency": "KES",
         }
-    except sqlite3.Error as e:
-        raise HTTPException(
-            status_code=500, detail=f"Database query failed: {str(e)}"
+    finally:
+        conn.close()
+
+
+# 2. BORROWERS MANAGEMENT
+@app.get("/api/borrowers")
+def list_borrowers(search: Optional[str] = Query(None)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = """
+            SELECT b.*, 
+                   COUNT(l.id) AS total_loans,
+                   SUM(CASE WHEN l.status = 'ACTIVE' THEN 1 ELSE 0 END) AS active_loans
+            FROM borrowers b
+            LEFT JOIN loans l ON b.id = l.borrower_id
+        """
+        params = []
+        if search:
+            query += " WHERE b.full_name LIKE ? OR b.phone LIKE ? OR b.borrower_number LIKE ? OR b.national_id LIKE ?"
+            term = f"%{search}%"
+            params = [term, term, term, term]
+        
+        query += " GROUP BY b.id ORDER BY b.id DESC"
+        cursor.execute(query, params)
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+@app.post("/api/borrowers")
+def create_borrower(borrower: BorrowerCreateRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        borrower_number = generate_number("BRW", "borrowers")
+        cursor.execute(
+            """
+            INSERT INTO borrowers (borrower_number, full_name, phone, national_id, location)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (borrower_number, borrower.full_name, borrower.phone, borrower.national_id, borrower.location)
         )
+        borrower_id = cursor.lastrowid
+        conn.commit()
+        return {
+            "status": "success",
+            "message": "Borrower registered successfully",
+            "borrower_id": borrower_id,
+            "borrower_number": borrower_number
+        }
+    finally:
+        conn.close()
+
+
+# 3. LOANS ENGINE
+@app.get("/api/loans")
+def list_loans(search: Optional[str] = Query(None), status_filter: Optional[str] = Query(None)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = """
+            SELECT l.*, b.full_name AS borrower_name, b.phone AS borrower_phone, b.borrower_number
+            FROM loans l
+            JOIN borrowers b ON l.borrower_id = b.id
+        """
+        where_clauses = []
+        params = []
+        if search:
+            where_clauses.append("(l.loan_number LIKE ? OR b.full_name LIKE ? OR b.phone LIKE ?)")
+            term = f"%{search}%"
+            params.extend([term, term, term])
+        if status_filter:
+            where_clauses.append("l.status = ?")
+            params.append(status_filter)
+
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+
+        query += " ORDER BY l.id DESC"
+        cursor.execute(query, params)
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+@app.post("/api/loans")
+def create_loan(loan: LoanCreateRequest):
+    principal_dec = money(loan.principal)
+    if principal_dec <= 0:
+        raise HTTPException(status_code=400, detail="Principal must be greater than 0.")
+
+    issue_date = date.fromisoformat(loan.issue_date) if loan.issue_date else date.today()
+    due_date = issue_date + timedelta(days=30)
+    interest_amount = money(principal_dec * Decimal("0.20"))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        loan_number = generate_number("LN", "loans")
+        cursor.execute(
+            """
+            INSERT INTO loans (loan_number, borrower_id, principal, interest_rate, issue_date, due_date, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')
+            """,
+            (loan_number, loan.borrower_id, float(principal_dec), loan.interest_rate or 20.0, issue_date.isoformat(), due_date.isoformat())
+        )
+        loan_id = cursor.lastrowid
+
+        # Initial monthly period
+        cursor.execute(
+            """
+            INSERT INTO monthly_periods (loan_id, month_start, month_end, opening_principal, interest_due)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (loan_id, issue_date.isoformat(), due_date.isoformat(), float(principal_dec), float(interest_amount))
+        )
+
+        conn.commit()
+        return {
+            "status": "success",
+            "message": "Loan facility issued successfully",
+            "loan_id": loan_id,
+            "loan_number": loan_number,
+            "interest_due": float(interest_amount),
+            "due_date": due_date.isoformat()
+        }
+    finally:
+        conn.close()
+
+
+# 4. PUSH FORWARD ENGINE
+@app.post("/api/loans/{loan_id}/push-forward")
+def push_loan_forward(loan_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM loans WHERE id = ?", (loan_id,))
+        loan = cursor.fetchone()
+        if not loan:
+            raise HTTPException(status_code=404, detail="Loan not found.")
+
+        cursor.execute(
+            "SELECT * FROM monthly_periods WHERE loan_id = ? AND status = 'ACTIVE' ORDER BY id DESC LIMIT 1",
+            (loan_id,)
+        )
+        period = cursor.fetchone()
+        if not period:
+            raise HTTPException(status_code=400, detail="No active monthly period found.")
+
+        # Check if monthly interest is fully paid
+        interest_due = Decimal(str(period["interest_due"]))
+        interest_paid = Decimal(str(period["interest_paid"]))
+
+        if interest_paid < interest_due:
+            diff = float(interest_due - interest_paid)
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot push forward. Interest of KES {diff:,.2f} remains unpaid for current period."
+            )
+
+        remaining_principal = Decimal(str(loan["principal"]))
+        if remaining_principal <= 0:
+            raise HTTPException(status_code=400, detail="Loan principal is fully paid.")
+
+        # Mark current period as carried forward
+        cursor.execute("UPDATE monthly_periods SET status = 'CARRIED_FORWARD' WHERE id = ?", (period["id"],))
+
+        current_end = date.fromisoformat(period["month_end"])
+        next_start = current_end + timedelta(days=1)
+        next_end = next_start + timedelta(days=30)
+        next_interest = money(remaining_principal * Decimal("0.20"))
+
+        # Create next monthly period
+        cursor.execute(
+            """
+            INSERT INTO monthly_periods (loan_id, month_start, month_end, opening_principal, interest_due, status)
+            VALUES (?, ?, ?, ?, ?, 'ACTIVE')
+            """,
+            (loan_id, next_start.isoformat(), next_end.isoformat(), float(remaining_principal), float(next_interest))
+        )
+        next_period_id = cursor.lastrowid
+
+        # Log push forward history
+        cursor.execute(
+            """
+            INSERT INTO push_forward_history (loan_id, from_period_id, to_period_id, principal_carried, push_date)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (loan_id, period["id"], next_period_id, float(remaining_principal), date.today().isoformat())
+        )
+
+        conn.commit()
+        return {
+            "status": "success",
+            "message": "Loan period pushed forward to next month",
+            "principal_carried": float(remaining_principal),
+            "new_interest_due": float(next_interest),
+            "next_due_date": next_end.isoformat()
+        }
+    finally:
+        conn.close()
+
+
+# 5. PAYMENTS ENGINE
+@app.get("/api/payments")
+def list_payments():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT p.*, l.loan_number, b.full_name AS borrower_name
+            FROM payments p
+            JOIN loans l ON p.loan_id = l.id
+            JOIN borrowers b ON l.borrower_id = b.id
+            ORDER BY p.id DESC
+            """
+        )
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
     finally:
         conn.close()
 
 
 @app.post("/api/payments")
-def record_payment(payment: PaymentSubmitRequest):
-    """Records payment and structures JSON payload for Safaricom Daraja STK Push integration."""
-    if payment.amount <= 0:
-        raise HTTPException(
-            status_code=400, detail="Payment amount must be greater than KES 0."
+def record_payment(payment: PaymentCreateRequest):
+    amount_dec = money(payment.amount)
+    if amount_dec <= 0:
+        raise HTTPException(status_code=400, detail="Payment amount must be greater than KES 0.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM loans WHERE id = ?", (payment.loan_id,))
+        loan = cursor.fetchone()
+        if not loan:
+            raise HTTPException(status_code=404, detail="Loan not found.")
+
+        cursor.execute(
+            "SELECT * FROM monthly_periods WHERE loan_id = ? AND status = 'ACTIVE' ORDER BY id DESC LIMIT 1",
+            (payment.loan_id,)
+        )
+        period = cursor.fetchone()
+        if not period:
+            raise HTTPException(status_code=400, detail="No active monthly period found.")
+
+        interest_due = Decimal(str(period["interest_due"]))
+        interest_paid = Decimal(str(period["interest_paid"]))
+        interest_remaining = max(Decimal("0.00"), interest_due - interest_paid)
+
+        # Priority 1: Interest, Priority 2: Principal
+        interest_allocation = min(amount_dec, interest_remaining)
+        principal_allocation = amount_dec - interest_allocation
+
+        # Record payment entry
+        cursor.execute(
+            """
+            INSERT INTO payments (
+                loan_id, monthly_period_id, payment_date, amount,
+                interest_portion, principal_portion, payment_method, reference_number
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                payment.loan_id,
+                period["id"],
+                date.today().isoformat(),
+                float(amount_dec),
+                float(interest_allocation),
+                float(principal_allocation),
+                payment.payment_method or "M-PESA Buy Goods Till",
+                payment.reference_number.strip().upper() if payment.reference_number else ""
+            )
         )
 
-    if not payment.reference_number.strip():
-        raise HTTPException(
-            status_code=400, detail="Reference number cannot be empty."
+        # Update monthly period
+        new_interest_paid = interest_paid + interest_allocation
+        new_principal_paid = Decimal(str(period["principal_paid"])) + principal_allocation
+        cursor.execute(
+            "UPDATE monthly_periods SET interest_paid = ?, principal_paid = ? WHERE id = ?",
+            (float(new_interest_paid), float(new_principal_paid), period["id"])
         )
 
-    # Clean phone number format for Daraja API (e.g., 2547XXXXXXXX)
-    phone = (payment.phone_number or "254700000000").replace("+", "").strip()
+        # Update remaining loan principal
+        current_principal = Decimal(str(loan["principal"]))
+        new_principal = max(Decimal("0.00"), current_principal - principal_allocation)
 
-    return {
-        "status": "success",
-        "message": "Payment recorded and queued for M-PESA STK Push",
-        "data": {
-            "amount": payment.amount,
-            "payment_date": payment.payment_date,
-            "reference_number": payment.reference_number.strip().upper(),
-            "payment_method": payment.payment_method,
-            "daraja_stk_payload": {
-                "BusinessShortCode": "174379",
-                "TransactionType": "CustomerBuyGoodsOnline",
-                "Amount": payment.amount,
-                "PartyA": phone,
-                "PhoneNumber": phone,
-                "CallBackURL": "https://api.mikopohub.com/api/mpesa/callback",
-                "AccountReference": f"LOAN-{payment.loan_id or 1}",
-                "TransactionDesc": "MikopoHub Repayment",
-            },
-        },
-    }
+        if new_principal <= Decimal("0.00"):
+            cursor.execute("UPDATE loans SET principal = 0, status = 'PAID' WHERE id = ?", (payment.loan_id,))
+        else:
+            cursor.execute("UPDATE loans SET principal = ? WHERE id = ?", (float(new_principal), payment.loan_id))
+
+        conn.commit()
+        return {
+            "status": "success",
+            "message": "Payment allocated successfully",
+            "allocated_interest": float(interest_allocation),
+            "allocated_principal": float(principal_allocation),
+            "remaining_principal": float(new_principal),
+            "loan_status": "PAID" if new_principal <= Decimal("0.00") else "ACTIVE"
+        }
+    finally:
+        conn.close()
+
+
+# 6. FORM FEES
+@app.get("/api/form-fees")
+def list_form_fees():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT f.*, b.full_name AS borrower_name, b.phone, b.borrower_number
+            FROM form_fees f
+            JOIN borrowers b ON f.borrower_id = b.id
+            ORDER BY f.id DESC
+            """
+        )
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+@app.post("/api/form-fees")
+def create_form_fee(fee: FormFeeCreateRequest):
+    req_amt = money(fee.requested_amount)
+    fee_amt = Decimal("500.00") if req_amt <= 50000 else Decimal("1000.00")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO form_fees (borrower_id, requested_amount, fee_amount) VALUES (?, ?, ?)",
+            (fee.borrower_id, float(req_amt), float(fee_amt))
+        )
+        fee_id = cursor.lastrowid
+        conn.commit()
+        return {"status": "success", "fee_id": fee_id, "fee_amount": float(fee_amt)}
+    finally:
+        conn.close()
+
+
+@app.post("/api/form-fees/{fee_id}/pay")
+def pay_form_fee(fee_id: int, pay_data: FormFeePayRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE form_fees
+            SET payment_status = 'PAID', payment_method = ?, reference_number = ?, payment_date = ?
+            WHERE id = ?
+            """,
+            (pay_data.payment_method, pay_data.reference_number.strip().upper(), date.today().isoformat(), fee_id)
+        )
+        conn.commit()
+        return {"status": "success", "message": "Form fee marked as PAID"}
+    finally:
+        conn.close()
+
+
+# 7. COLLATERAL REGISTRY
+@app.get("/api/collateral")
+def list_collateral(search: Optional[str] = Query(None)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = """
+            SELECT c.*, l.loan_number, b.full_name AS borrower_name
+            FROM collateral c
+            JOIN loans l ON c.loan_id = l.id
+            JOIN borrowers b ON l.borrower_id = b.id
+        """
+        params = []
+        if search:
+            query += " WHERE c.collateral_number LIKE ? OR c.security_type LIKE ? OR c.description LIKE ? OR c.serial_number LIKE ?"
+            term = f"%{search}%"
+            params = [term, term, term, term]
+
+        query += " ORDER BY c.id DESC"
+        cursor.execute(query, params)
+        rows = [dict(row) for row in cursor.fetchall()]
+        return {"status": "success", "data": rows}
+    finally:
+        conn.close()
+
+
+@app.post("/api/collateral")
+def create_collateral(item: CollateralCreateRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        collateral_number = generate_number("COL", "collateral")
+        cursor.execute(
+            """
+            INSERT INTO collateral (
+                collateral_number, loan_id, security_type, description,
+                estimated_value, serial_number, condition, date_received, status, notes
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'HELD', ?)
+            """,
+            (
+                collateral_number, item.loan_id, item.security_type, item.description,
+                item.estimated_value or 0.0, item.serial_number, item.condition or "Good",
+                date.today().isoformat(), item.notes
+            )
+        )
+        item_id = cursor.lastrowid
+        conn.commit()
+        return {
+            "status": "success",
+            "message": "Collateral registered successfully",
+            "collateral_id": item_id,
+            "collateral_number": collateral_number
+        }
+    finally:
+        conn.close()
+
+
+@app.put("/api/collateral/{item_id}")
+def update_collateral(item_id: int, update_data: CollateralUpdateRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE collateral SET status = ?, notes = ? WHERE id = ?",
+            (update_data.status, update_data.notes, item_id)
+        )
+        conn.commit()
+        return {"status": "success", "message": f"Collateral status updated to {update_data.status}"}
+    finally:
+        conn.close()
